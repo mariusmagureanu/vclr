@@ -40,6 +40,7 @@ const (
 	// Keywords
 	FUNCTION = "FUNCTION"
 	SET      = "SET"
+	UNSET    = "UNSET"
 	TRUE     = "TRUE"
 	FALSE    = "FALSE"
 	IF       = "IF"
@@ -62,6 +63,7 @@ var keywords = map[string]TokenType{
 	"import":  IMPORT,
 	"vcl":     VCL,
 	"set":     SET,
+	"unset":   UNSET,
 	"true":    TRUE,
 	"false":   FALSE,
 	"if":      IF,

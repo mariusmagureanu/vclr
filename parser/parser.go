@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/varnish/vclr/ast"
 	"github.com/varnish/vclr/lexer"
@@ -21,6 +22,13 @@ const (
 )
 
 var (
+	variables = map[string][]string{
+		"req.method":      []string{"vcl_recv", "vcl_pass"},
+		"req.url":         []string{"vcl_recv", "vcl_pass"},
+		"req.hash":        []string{"vcl_pass"},
+		"req.http.cookie": []string{"vcl_recv", "vcl_pass", "vcl_backend_fetch"},
+	}
+
 	precedences = map[token.TokenType]int{
 		token.ASSIGN:   EQUALS,
 		token.EQ:       EQUALS,
@@ -48,6 +56,8 @@ type Parser struct {
 	currentToken token.Token
 	peekToken    token.Token
 	errors       []string
+
+	currentSub string
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -61,13 +71,17 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
 	p.registerPrefix(token.REAL, p.parseRealLiteral)
+	p.registerPrefix(token.DURATION, p.parseDurationLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 	p.registerPrefix(token.ACL, p.parseAclExpression)
 	p.registerPrefix(token.BACKEND, p.parseBackendExpression)
+	p.registerPrefix(token.PROBE, p.parseProbeExpression)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
+	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 
 	p.registerInfix(token.ASSIGN, p.parseInfixExpression)
 	p.registerInfix(token.SLASH, p.parseInfixExpression)
+	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.EQ, p.parseInfixExpression)
 
 	p.nextToken()
@@ -143,6 +157,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseIncludeStatement()
 	case token.IMPORT:
 		return p.parseImportStatement()
+	case token.UNSET:
+		return p.parseUnsetStatement()
 	default:
 		return p.parseExpressionStatement()
 
@@ -167,7 +183,6 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixParseFns[p.currentToken.Type]
 
 	if prefix == nil {
-		fmt.Println(p.prefixParseFns)
 		p.prefixParserFnError(p.currentToken)
 		return nil
 	}
@@ -228,7 +243,7 @@ func (p *Parser) currentPrecedence() int {
 }
 
 func (p *Parser) peekError(t token.TokenType) {
-	errMsg := fmt.Sprintf("Expected next token to be %s - got %s %s instead.", t, p.peekToken.Type, p.peekToken.Literal)
+	errMsg := fmt.Sprintf("Expected next token to be %s but got %s %s instead.", t, p.peekToken.Type, p.peekToken.Literal)
 	p.errors = append(p.errors, errMsg)
 }
 
@@ -269,6 +284,12 @@ func (p *Parser) parseRealLiteral() ast.Expression {
 	return rl
 }
 
+func (p *Parser) parseDurationLiteral() ast.Expression {
+	dl := &ast.DurationLiteral{Token: p.currentToken, Value: p.currentToken.Literal}
+
+	return dl
+}
+
 func (p *Parser) parseStringLiteral() ast.Expression {
 	return &ast.StringLiteral{Token: p.currentToken, Value: p.currentToken.Literal}
 }
@@ -277,21 +298,35 @@ func (p *Parser) parseSetStatement() *ast.SetStatement {
 	stmt := &ast.SetStatement{Token: p.currentToken}
 
 	if !p.expectPeek(token.IDENT) {
+		p.errors = append(p.errors, "Missing identifier in set statement.")
+		return nil
+	}
+
+	if !p.isValidVariable(p.currentToken.Literal) {
 		return nil
 	}
 
 	stmt.Name = &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
 
 	if !p.expectPeek(token.ASSIGN) {
+		p.errors = append(p.errors, "Missing assignment in set statement.")
 		return nil
 	}
+
+	p.nextToken()
+
+	for p.currentTokenIs(token.SEMICOLON) {
+		p.errors = append(p.errors, "Missing value in set statement.")
+		return nil
+	}
+
+	stmt.Value = p.parseExpression(LOWEST) //&ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
 
 	for !p.currentTokenIs(token.SEMICOLON) {
 		p.nextToken()
 	}
 
 	return stmt
-
 }
 
 func (p *Parser) parseVclStatement() *ast.VclStatement {
@@ -332,6 +367,24 @@ func (p *Parser) parseIncludeStatement() *ast.IncludeStatement {
 	return stmt
 }
 
+func (p *Parser) parseUnsetStatement() *ast.UnsetStatement {
+	stmt := &ast.UnsetStatement{Token: p.currentToken}
+
+	p.nextToken()
+
+	stmt.Value = p.currentToken.Literal
+
+	if !p.isValidVariable(stmt.Value) {
+		return nil
+	}
+
+	if !p.expectPeek(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
 func (p *Parser) parseImportStatement() *ast.ImportStatement {
 	stmt := &ast.ImportStatement{Token: p.currentToken}
 
@@ -346,7 +399,29 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 	return stmt
 }
 
+func (p *Parser) isValidVariable(vclVar string) bool {
+
+	if sub, found := variables[vclVar]; found {
+		for _, s := range sub {
+			if s == p.currentSub {
+				return true
+			}
+		}
+
+		p.errors = append(p.errors, fmt.Sprintf("%s is not allowed in %s", vclVar, p.currentSub))
+		return false
+	}
+
+	return true
+
+}
+
 func (p *Parser) parseIdentifier() ast.Expression {
+
+	if !p.isValidVariable(p.currentToken.Literal) {
+		return nil
+	}
+
 	return &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
 }
 
@@ -366,6 +441,9 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 		p.nextToken()
 	}
 
+	if p.currentToken.Type != token.RBRACE {
+		p.errors = append(p.errors, "Unclosed brace in  "+block.String())
+	}
 	return block
 }
 
@@ -397,4 +475,36 @@ func (p *Parser) parseBackendExpression() ast.Expression {
 	backend.Body = p.parseBlockStatement()
 
 	return backend
+}
+
+func (p *Parser) parseProbeExpression() ast.Expression {
+	probe := &ast.ProbeExpression{Token: p.currentToken}
+
+	p.nextToken()
+
+	probe.Name = &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
+
+	p.nextToken()
+
+	probe.Body = p.parseBlockStatement()
+
+	return probe
+}
+
+func (p *Parser) parseFunctionLiteral() ast.Expression {
+	fn := &ast.FunctionLiteral{Token: p.currentToken}
+
+	p.nextToken()
+
+	fn.Name = &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
+
+	if strings.HasPrefix(fn.Name.Value, "vcl_") {
+		p.currentSub = fn.Name.Value
+	}
+
+	p.nextToken()
+
+	fn.Body = p.parseBlockStatement()
+
+	return fn
 }

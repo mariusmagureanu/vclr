@@ -6,6 +6,10 @@ import (
 	"github.com/varnish/vclr/token"
 )
 
+var (
+	durations = []byte{'s', 'm', 'h', 'y', 'd', 'w'}
+)
+
 type Lexer struct {
 	input        string
 	position     int
@@ -86,6 +90,12 @@ func (l *Lexer) NextToken() token.Token {
 				tok.Literal = l.readInteger()
 			}
 
+			if isDurationChar(l.ch) {
+				tok.Type = token.DURATION
+				tok.Literal = tok.Literal + string(l.ch)
+				l.readChar()
+			}
+
 			return tok
 		} else {
 			tok = newToken(token.ILLEGAL, l.ch)
@@ -158,10 +168,21 @@ func (l *Lexer) readInteger() string {
 	return l.input[position:l.position]
 }
 
+func isDurationChar(ch byte) bool {
+
+	for _, c := range durations {
+		if string(c) == string(ch) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func isDigit(ch byte) bool {
 	return '0' <= ch && ch <= '9'
 }
 
 func isLetter(ch byte) bool {
-	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch == '.'
+	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch == '.' || ch == '-'
 }

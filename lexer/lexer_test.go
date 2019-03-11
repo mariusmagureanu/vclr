@@ -7,14 +7,14 @@ import (
 )
 
 func TestNextTokenLite(t *testing.T) {
-	input := `=4.1,7,6,5.06,(0){},;`
+	input := `=4.1y,7,6,5.06,(0){},;`
 
 	tests := []struct {
 		expectedType    token.TokenType
 		expectedLiteral string
 	}{
 		{token.ASSIGN, "="},
-		{token.REAL, "4.1"},
+		{token.DURATION, "4.1y"},
 		{token.COMMA, ","},
 		{token.INT, "7"},
 		{token.COMMA, ","},
@@ -42,7 +42,7 @@ func TestNextTokenLite(t *testing.T) {
 		}
 
 		if tok.Literal != tt.expectedLiteral {
-			t.Fatalf("tests[%d] - literal wrong, expected %q, got %q", i, tt.expectedLiteral, tok.Type)
+			t.Fatalf("tests[%d] - literal wrong, expected %q, got %q", i, tt.expectedLiteral, tok.Literal)
 		}
 	}
 }

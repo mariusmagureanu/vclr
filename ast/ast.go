@@ -56,6 +56,11 @@ type VclStatement struct {
 	Value float64
 }
 
+type UnsetStatement struct {
+	Token token.Token
+	Value string
+}
+
 type IncludeStatement struct {
 	Token token.Token
 	Value string
@@ -96,6 +101,11 @@ type StringLiteral struct {
 	Value string
 }
 
+type DurationLiteral struct {
+	Token token.Token
+	Value string
+}
+
 type BlockStatement struct {
 	Token      token.Token // the { token
 	Statements []Statement
@@ -108,6 +118,18 @@ type AclExpression struct {
 }
 
 type BackendExpression struct {
+	Token token.Token
+	Name  *Identifier
+	Body  *BlockStatement
+}
+
+type ProbeExpression struct {
+	Token token.Token
+	Name  *Identifier
+	Body  *BlockStatement
+}
+
+type FunctionLiteral struct {
 	Token token.Token
 	Name  *Identifier
 	Body  *BlockStatement
@@ -144,8 +166,6 @@ func (ls *SetStatement) String() string {
 		out.WriteString(ls.Value.String())
 	}
 
-	out.WriteString(";")
-
 	return out.String()
 }
 
@@ -154,11 +174,8 @@ func (pe *PrefixExpression) TokenLiteral() string { return pe.Token.Literal }
 func (pe *PrefixExpression) String() string {
 	var out bytes.Buffer
 
-	out.WriteString("{")
 	out.WriteString(pe.Operator)
 	out.WriteString(pe.Right.String())
-	out.WriteString("}")
-
 	return out.String()
 
 }
@@ -167,12 +184,9 @@ func (ie *InfixExpression) expressionNode()      {}
 func (ie *InfixExpression) TokenLiteral() string { return ie.Token.Literal }
 func (ie *InfixExpression) String() string {
 	var out bytes.Buffer
-	out.WriteString("{")
 	out.WriteString(ie.Left.String())
 	out.WriteString(ie.Operator)
 	out.WriteString(ie.Right.String())
-	out.WriteString("}")
-
 	return out.String()
 }
 
@@ -211,19 +225,25 @@ func (es *ExpressionStatement) String() string {
 func (vs *VclStatement) statementNode()       {}
 func (vs *VclStatement) TokenLiteral() string { return vs.Token.Literal }
 func (vs *VclStatement) String() string {
-	return vs.TokenLiteral() + " " + strconv.FormatFloat(vs.Value, 'f', 1, 64)
+	return vs.TokenLiteral() + " " + strconv.FormatFloat(vs.Value, 'f', 1, 64) + ";\n"
 }
 
 func (vs *ImportStatement) statementNode()       {}
 func (vs *ImportStatement) TokenLiteral() string { return vs.Token.Literal }
 func (vs *ImportStatement) String() string {
+	return vs.TokenLiteral() + " " + vs.Value + ";\n"
+}
+
+func (vs *UnsetStatement) statementNode()       {}
+func (vs *UnsetStatement) TokenLiteral() string { return vs.Token.Literal }
+func (vs *UnsetStatement) String() string {
 	return vs.TokenLiteral() + " " + vs.Value
 }
 
 func (vs *IncludeStatement) statementNode()       {}
 func (vs *IncludeStatement) TokenLiteral() string { return vs.Token.Literal }
 func (vs *IncludeStatement) String() string {
-	return vs.TokenLiteral() + " " + vs.Value
+	return vs.TokenLiteral() + " " + vs.Value + ";\n"
 }
 
 func (bs *BlockStatement) expressionNode()      {}
@@ -231,11 +251,14 @@ func (bs *BlockStatement) TokenLiteral() string { return bs.Token.Literal }
 func (bs *BlockStatement) String() string {
 	var out bytes.Buffer
 
+	out.WriteString(" {")
 	for _, s := range bs.Statements {
-		out.WriteString("\n")
+		out.WriteString("\n\t")
 		out.WriteString(s.String())
+		out.WriteString(";")
 
 	}
+	out.WriteString("\n}\n")
 
 	return out.String()
 }
@@ -245,6 +268,7 @@ func (ac *AclExpression) TokenLiteral() string { return ac.Token.Literal }
 func (ac *AclExpression) String() string {
 	var out bytes.Buffer
 
+	out.WriteString("\n")
 	out.WriteString(ac.Token.Literal)
 	out.WriteString(" ")
 	out.WriteString(ac.Name.Value)
@@ -258,10 +282,39 @@ func (be *BackendExpression) TokenLiteral() string { return be.Token.Literal }
 func (be *BackendExpression) String() string {
 	var out bytes.Buffer
 
+	out.WriteString("\n")
 	out.WriteString(be.Token.Literal)
 	out.WriteString(" ")
 	out.WriteString(be.Name.Value)
 	out.WriteString(be.Body.String())
+
+	return out.String()
+}
+
+func (pe *ProbeExpression) expressionNode()      {}
+func (pe *ProbeExpression) TokenLiteral() string { return pe.Token.Literal }
+func (pe *ProbeExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("\n")
+	out.WriteString(pe.Token.Literal)
+	out.WriteString(" ")
+	out.WriteString(pe.Name.Value)
+	out.WriteString(pe.Body.String())
+
+	return out.String()
+}
+
+func (fl *FunctionLiteral) expressionNode()      {}
+func (fl *FunctionLiteral) TokenLiteral() string { return fl.Token.Literal }
+func (fl *FunctionLiteral) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("\n")
+	out.WriteString(fl.Token.Literal)
+	out.WriteString(" ")
+	out.WriteString(fl.Name.Value)
+	out.WriteString(fl.Body.String())
 
 	return out.String()
 }
@@ -277,3 +330,7 @@ func (rl *RealLiteral) String() string       { return strconv.FormatFloat(rl.Val
 func (ip *StringLiteral) expressionNode()      {}
 func (ip *StringLiteral) TokenLiteral() string { return ip.Token.Literal }
 func (ip *StringLiteral) String() string       { return ip.Value }
+
+func (dl *DurationLiteral) expressionNode()      {}
+func (dl *DurationLiteral) TokenLiteral() string { return dl.Token.Literal }
+func (dl *DurationLiteral) String() string       { return dl.Token.Literal }
