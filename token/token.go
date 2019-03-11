@@ -1,0 +1,85 @@
+package token
+
+const (
+	ILLEGAL = "ILLEGAL"
+	EOF     = "EOF"
+
+	//Identifiers and literals
+	IDENT    = "IDENT"    // add, foo, bar, x, y...
+	INT      = "INT"      // 1232
+	REAL     = "REAL"     // 3.14
+	DURATION = "DURATION" // 4.50s
+	STRING   = "STRING"
+
+	//Operators
+	PLUS     = "+"
+	MINUS    = "-"
+	ASTERISK = "*"
+	SLASH    = "/"
+
+	BANG        = "!"
+	ASSIGN      = "="
+	MATCH       = "~"
+	EQ          = "=="
+	NOT_EQ      = "!="
+	LOGICAL_OR  = "||"
+	LOGICAL_AND = "&&"
+
+	LT = "<"
+	GT = ">"
+
+	//Delimiters
+	COMMA     = ","
+	SEMICOLON = ";"
+
+	LPAREN = "("
+	RPAREN = ")"
+	LBRACE = "{"
+	RBRACE = "}"
+
+	// Keywords
+	FUNCTION = "FUNCTION"
+	SET      = "SET"
+	TRUE     = "TRUE"
+	FALSE    = "FALSE"
+	IF       = "IF"
+	ELSE     = "ELSE"
+	RETURN   = "RETURN"
+	INCLUDE  = "INCLUDE"
+	VCL      = "VCL"
+	IMPORT   = "IMPORT"
+	ACL      = "ACL"
+	BACKEND  = "BACKEND"
+	PROBE    = "PROBE"
+)
+
+var keywords = map[string]TokenType{
+	"probe":   PROBE,
+	"backend": BACKEND,
+	"acl":     ACL,
+	"sub":     FUNCTION,
+	"include": INCLUDE,
+	"import":  IMPORT,
+	"vcl":     VCL,
+	"set":     SET,
+	"true":    TRUE,
+	"false":   FALSE,
+	"if":      IF,
+	"else":    ELSE,
+	"return":  RETURN,
+}
+
+type TokenType string
+
+type Token struct {
+	Type    TokenType
+	Literal string
+}
+
+func LookupIdent(ident string) TokenType {
+	if tok, ok := keywords[ident]; ok {
+		return tok
+	}
+
+	return IDENT
+}
