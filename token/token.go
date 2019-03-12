@@ -24,6 +24,8 @@ const (
 	NOT_EQ      = "!="
 	LOGICAL_OR  = "||"
 	LOGICAL_AND = "&&"
+	PIPE        = "|"
+	AMPERSAND   = "&"
 
 	LT = "<"
 	GT = ">"

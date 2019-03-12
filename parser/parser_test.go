@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"fmt"
+	_ "fmt"
 	"testing"
 
 	"github.com/varnish/vclr/ast"
@@ -55,6 +55,17 @@ func TestAll(t *testing.T) {
 	
 			set req.http.X-foo = "bar";
 			set req.url = "/api/url/baz";
+			
+			  if (req.method != "GET" &&
+      			  req.method != "HEAD" &&
+      			  req.method != "PUT" &&
+      			  req.method != "POST" &&
+      			  req.method != "TRACE" &&
+      			  req.method != "OPTIONS" &&
+      			  req.method != "DELETE") 
+					{
+        	   			return (pipe);
+				}
 		}
 		
 		sub vcl_pass {
@@ -86,7 +97,7 @@ func TestAll(t *testing.T) {
 		t.Fatalf("program.Statements does not contain %d statements. got %d", 11, len(program.Statements))
 	}
 
-	fmt.Println(program.String())
+	//fmt.Println(program.String())
 }
 
 func TestFunctionLiteral(t *testing.T) {
