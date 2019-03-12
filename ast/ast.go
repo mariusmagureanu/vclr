@@ -136,6 +136,11 @@ type FunctionLiteral struct {
 	Body  *BlockStatement
 }
 
+type CallStatement struct {
+	Token token.Token // the 'call' token
+	Value string
+}
+
 type IfExpression struct {
 	Token       token.Token // the 'if' token
 	Condition   Expression
@@ -248,6 +253,12 @@ func (vs *ImportStatement) String() string {
 	return vs.TokenLiteral() + " " + vs.Value + ";\n"
 }
 
+func (cs *CallStatement) statementNode()       {}
+func (cs *CallStatement) TokenLiteral() string { return cs.Token.Literal }
+func (cs *CallStatement) String() string {
+	return cs.TokenLiteral() + " " + cs.Value + ";\n"
+}
+
 func (vs *UnsetStatement) statementNode()       {}
 func (vs *UnsetStatement) TokenLiteral() string { return vs.Token.Literal }
 func (vs *UnsetStatement) String() string {
@@ -268,11 +279,11 @@ func (bs *BlockStatement) String() string {
 	out.WriteString(" {")
 	for _, s := range bs.Statements {
 		out.WriteString("\n\t")
-		out.WriteString(s.String())
-		out.WriteString(";")
+		out.WriteString("\t" + s.String())
+		//out.WriteString(";")
 
 	}
-	out.WriteString("\n}\n")
+	out.WriteString("\n\t}\n")
 
 	return out.String()
 }
@@ -344,7 +355,7 @@ func (ie *IfExpression) String() string {
 	out.WriteString(ie.Consequence.String())
 
 	if ie.Alternative != nil {
-		out.WriteString("else ")
+		out.WriteString("\telse ")
 		out.WriteString(ie.Alternative.String())
 	}
 

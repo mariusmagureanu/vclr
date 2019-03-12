@@ -23,10 +23,10 @@ const (
 
 var (
 	variables = map[string][]string{
-		"req.method":      []string{"vcl_recv", "vcl_pass"},
-		"req.url":         []string{"vcl_recv", "vcl_pass"},
-		"req.hash":        []string{"vcl_pass"},
-		"req.http.cookie": []string{"vcl_recv", "vcl_pass", "vcl_backend_fetch"},
+		"req.method": []string{"vcl_recv", "vcl_pass"},
+		"req.url":    []string{"vcl_recv", "vcl_pass"},
+		"req.hash":   []string{"vcl_pass"},
+		"req.http.*": []string{"vcl_recv", "vcl_pass", "vcl_backend_fetch"},
 	}
 
 	precedences = map[token.TokenType]int{
@@ -34,6 +34,7 @@ var (
 		token.EQ:          EQUALS,
 		token.NOT_EQ:      EQUALS,
 		token.MATCH:       EQUALS,
+		token.NOT_MATCH:   EQUALS,
 		token.LOGICAL_AND: EQUALS,
 		token.LOGICAL_OR:  EQUALS,
 		token.LT:          LESSGREATER,
@@ -88,6 +89,9 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.ASSIGN, p.parseInfixExpression)
 	p.registerInfix(token.MATCH, p.parseInfixExpression)
+	p.registerInfix(token.NOT_MATCH, p.parseInfixExpression)
+	p.registerInfix(token.GT, p.parseInfixExpression)
+	p.registerInfix(token.LT, p.parseInfixExpression)
 	p.registerInfix(token.SLASH, p.parseInfixExpression)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.EQ, p.parseInfixExpression)
@@ -172,6 +176,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseUnsetStatement()
 	case token.RETURN:
 		return p.parseReturnStatement()
+	case token.CALL:
+		return p.parseCallFunctionStatement()
 	default:
 		return p.parseExpressionStatement()
 
@@ -427,7 +433,13 @@ func (p *Parser) parseSetStatement() *ast.SetStatement {
 
 	stmt.Value = p.parseExpression(LOWEST)
 
-	for !p.currentTokenIs(token.SEMICOLON) {
+	/*
+		for !p.currentTokenIs(token.SEMICOLON) {
+			p.nextToken()
+		}
+	*/
+
+	if !p.expectPeek(token.SEMICOLON) {
 		p.nextToken()
 	}
 
@@ -460,6 +472,20 @@ func (p *Parser) parseVclStatement() *ast.VclStatement {
 
 func (p *Parser) parseIncludeStatement() *ast.IncludeStatement {
 	stmt := &ast.IncludeStatement{Token: p.currentToken}
+
+	p.nextToken()
+
+	stmt.Value = p.currentToken.Literal
+
+	if !p.expectPeek(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseCallFunctionStatement() *ast.CallStatement {
+	stmt := &ast.CallStatement{Token: p.currentToken}
 
 	p.nextToken()
 

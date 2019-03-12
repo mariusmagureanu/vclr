@@ -1,7 +1,7 @@
 package parser
 
 import (
-	_ "fmt"
+	"fmt"
 	"testing"
 
 	"github.com/varnish/vclr/ast"
@@ -44,6 +44,15 @@ func TestAll(t *testing.T) {
 		}
 		
 		sub vcl_recv {
+			call synth;
+			call pipe_if_local;
+			
+			set req.http.Cookie = regsuball(req.http.Cookie, "__utm.=[^;]+(; )?", "");
+  			set req.http.Cookie = regsuball(req.http.Cookie, "_ga=[^;]+(; )?", "");
+  			set req.http.Cookie = regsuball(req.http.Cookie, "_gat=[^;]+(; )?", "");
+  			set req.http.Cookie = regsuball(req.http.Cookie, "utmctr=[^;]+(; )?", "");
+  			set req.http.Cookie = regsuball(req.http.Cookie, "utmcmd.=[^;]+(; )?", "");
+			set req.http.Cookie = regsuball(req.http.Cookie, "utmccn.=[^;]+(; )?", "");
 			
 			if (req.method == "PURGE") {
     			if (client.ip ~ local) {
@@ -56,16 +65,21 @@ func TestAll(t *testing.T) {
 			set req.http.X-foo = "bar";
 			set req.url = "/api/url/baz";
 			
-			  if (req.method != "GET" &&
+	    	if (req.method != "GET" &&
       			  req.method != "HEAD" &&
       			  req.method != "PUT" &&
       			  req.method != "POST" &&
       			  req.method != "TRACE" &&
       			  req.method != "OPTIONS" &&
       			  req.method != "DELETE") 
-					{
+				{
         	   			return (pipe);
 				}
+				
+			if ((req.http.host ~ "^(?i)smashing_ssl_one.tutorials.eoms") && req.http.X-Forwarded-Proto !~ "(?i)https") {
+					set req.http.x-redir = "https://" + req.http.host + req.url;
+					return (synth(750, ""));
+			}
 		}
 		
 		sub vcl_pass {
@@ -80,6 +94,28 @@ func TestAll(t *testing.T) {
 				set req.http.cookie = "Cache-Control: blaa";
 				}
 		}
+		
+		sub vcl_synth {
+		  if (resp.status == 750) {
+		    set resp.status = 301;
+		    set resp.http.Location = req.http.x-redir;
+		    return(deliver);
+		  }
+		}
+		
+		sub vcl_backend_response {
+		  set beresp.ttl = 10s;
+		  set beresp.grace = 1h;
+		}
+		
+		sub vcl_deliver {
+		  if (obj.hits > 0) { 
+		    set resp.http.X-Cache = "HIT";
+		  } else {
+			
+		    set resp.http.X-Cache = "MISS";
+		  }
+		}
 	
 	`
 
@@ -93,11 +129,11 @@ func TestAll(t *testing.T) {
 		t.Fatalf("ParseProgram() returned nil")
 	}
 
-	if len(program.Statements) != 11 {
-		t.Fatalf("program.Statements does not contain %d statements. got %d", 11, len(program.Statements))
+	if len(program.Statements) != 14 {
+		t.Fatalf("program.Statements does not contain %d statements. got %d", 14, len(program.Statements))
 	}
 
-	//fmt.Println(program.String())
+	fmt.Println(program.String())
 }
 
 func TestFunctionLiteral(t *testing.T) {

@@ -20,6 +20,7 @@ const (
 	BANG        = "!"
 	ASSIGN      = "="
 	MATCH       = "~"
+	NOT_MATCH   = "!~"
 	EQ          = "=="
 	NOT_EQ      = "!="
 	LOGICAL_OR  = "||"
@@ -54,9 +55,11 @@ const (
 	ACL      = "ACL"
 	BACKEND  = "BACKEND"
 	PROBE    = "PROBE"
+	CALL     = "CALL"
 )
 
 var keywords = map[string]TokenType{
+	"call":    CALL,
 	"probe":   PROBE,
 	"backend": BACKEND,
 	"acl":     ACL,
