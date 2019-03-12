@@ -45,15 +45,18 @@ func TestAll(t *testing.T) {
 		
 		sub vcl_recv {
 			call synth;
-			call pipe_if_local;
+			call pipe_if_local; # blaaa
+			// set something = xx;
 			
+			/*
 			set req.http.Cookie = regsuball(req.http.Cookie, "__utm.=[^;]+(; )?", "");
   			set req.http.Cookie = regsuball(req.http.Cookie, "_ga=[^;]+(; )?", "");
   			set req.http.Cookie = regsuball(req.http.Cookie, "_gat=[^;]+(; )?", "");
   			set req.http.Cookie = regsuball(req.http.Cookie, "utmctr=[^;]+(; )?", "");
   			set req.http.Cookie = regsuball(req.http.Cookie, "utmcmd.=[^;]+(; )?", "");
 			set req.http.Cookie = regsuball(req.http.Cookie, "utmccn.=[^;]+(; )?", "");
-			
+			*/
+
 			if (req.method == "PURGE") {
     			if (client.ip ~ local) {
     			   return(purge);

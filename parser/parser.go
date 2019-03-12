@@ -78,6 +78,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.REAL, p.parseRealLiteral)
 	p.registerPrefix(token.DURATION, p.parseDurationLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
+	p.registerPrefix(token.COMMENT_ONE, p.parseCommentStatement)
+	p.registerPrefix(token.COMMENT_TWO, p.parseCommentStatement)
 	p.registerPrefix(token.ACL, p.parseAclExpression)
 	p.registerPrefix(token.BACKEND, p.parseBackendExpression)
 	p.registerPrefix(token.PROBE, p.parseProbeExpression)
@@ -85,6 +87,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
+	p.registerPrefix(token.START_COMMENT, p.parseCommentBlockStatement)
 
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.ASSIGN, p.parseInfixExpression)
@@ -638,4 +641,20 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 	fn.Body = p.parseBlockStatement()
 
 	return fn
+}
+
+func (p *Parser) parseCommentStatement() ast.Expression {
+	return &ast.CommentStatement{Token: p.currentToken, Value: p.currentToken.Literal}
+}
+
+func (p *Parser) parseCommentBlockStatement() ast.Expression {
+	stmt := &ast.CommentBlockStatement{Token: p.currentToken, Value: p.currentToken.Literal}
+
+	p.nextToken()
+
+	if p.currentToken.Type != token.END_COMMENT {
+		p.errors = append(p.errors, "Unclosed block comment in  "+stmt.String())
+	}
+
+	return stmt
 }

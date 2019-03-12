@@ -141,6 +141,16 @@ type CallStatement struct {
 	Value string
 }
 
+type CommentStatement struct {
+	Token token.Token // the '#' or '//' tokens
+	Value string
+}
+
+type CommentBlockStatement struct {
+	Token token.Token // the '/*' token
+	Value string
+}
+
 type IfExpression struct {
 	Token       token.Token // the 'if' token
 	Condition   Expression
@@ -269,6 +279,16 @@ func (vs *IncludeStatement) statementNode()       {}
 func (vs *IncludeStatement) TokenLiteral() string { return vs.Token.Literal }
 func (vs *IncludeStatement) String() string {
 	return vs.TokenLiteral() + " " + vs.Value + ";\n"
+}
+
+func (cs *CommentStatement) expressionNode()      {}
+func (cs *CommentStatement) TokenLiteral() string { return cs.Token.Literal }
+func (cs *CommentStatement) String() string       { return string(cs.Token.Type) + cs.Value }
+
+func (cbs *CommentBlockStatement) expressionNode()      {}
+func (cbs *CommentBlockStatement) TokenLiteral() string { return cbs.Token.Literal }
+func (cbs *CommentBlockStatement) String() string {
+	return token.START_COMMENT + cbs.Value + token.END_COMMENT
 }
 
 func (bs *BlockStatement) expressionNode()      {}

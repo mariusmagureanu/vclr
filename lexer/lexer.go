@@ -57,6 +57,26 @@ func (l *Lexer) NextToken() token.Token {
 		} else {
 			tok = newToken(token.PIPE, l.ch)
 		}
+	// when reading comments we advance here, no reason
+	// to offload this to the parser. Instead, the parser
+	// will receive a comment token with the commented text
+	// as its literal value.
+	case '#':
+		tok.Type = token.COMMENT_ONE
+		tok.Literal = l.readStringToEOL()
+	case '/':
+		if l.peekChar() == '/' {
+			l.readChar()
+			tok.Type = token.COMMENT_TWO
+			tok.Literal = l.readStringToEOL()
+		} else if l.peekChar() == '*' {
+			l.readChar()
+			tok.Type = token.START_COMMENT
+			tok.Literal = l.readStringToEndOfCommentBlock()
+
+		} else {
+			tok = newToken(token.SLASH, l.ch)
+		}
 	case ';':
 		tok = newToken(token.SEMICOLON, l.ch)
 	case '>':
@@ -69,6 +89,15 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.PLUS, l.ch)
 	case '(':
 		tok = newToken(token.LPAREN, l.ch)
+	case '*':
+		if l.peekChar() == '/' {
+			ch := l.ch
+			l.readChar()
+			literal := string(ch) + string(l.ch)
+			tok = token.Token{Type: token.END_COMMENT, Literal: literal}
+		} else {
+			tok = newToken(token.ASTERISK, l.ch)
+		}
 	case '"':
 		tok.Type = token.STRING
 		tok.Literal = l.readString()
@@ -80,8 +109,6 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.RBRACE, l.ch)
 	case ',':
 		tok = newToken(token.COMMA, l.ch)
-	case '/':
-		tok = newToken(token.SLASH, l.ch)
 	case '!':
 		if l.peekChar() == '=' {
 			ch := l.ch
@@ -184,6 +211,50 @@ func (l *Lexer) readString() string {
 		if l.ch == '"' || l.ch == 0 {
 			break
 		}
+	}
+
+	return l.input[position:l.position]
+}
+
+func (l *Lexer) readStringToEOL() string {
+	position := l.position + 1
+
+	for {
+		l.readChar()
+		if l.ch == '\n' || l.ch == 0 {
+			break
+		}
+	}
+
+	return l.input[position:l.position]
+}
+
+// readStringToEndOfCommentBlock reads until we
+// start meeting '*/' but without
+// actually advancing on those characters, we're
+// breaking out when we're about the meet them.
+func (l *Lexer) readStringToEndOfCommentBlock() string {
+	position := l.position + 1
+
+	for {
+		l.readChar()
+
+		if l.ch == 0 {
+			break
+		}
+
+		// check there's still room to read
+		if l.readPosition+3 > len(l.input) {
+			break
+		}
+
+		x := l.input[l.readPosition+1]
+		y := l.input[l.readPosition+2]
+
+		if x == '*' && y == '/' {
+			break
+		}
+
 	}
 
 	return l.input[position:l.position]

@@ -28,6 +28,11 @@ const (
 	PIPE        = "|"
 	AMPERSAND   = "&"
 
+	COMMENT_ONE   = "#"
+	COMMENT_TWO   = "//"
+	START_COMMENT = "/*"
+	END_COMMENT   = "*/"
+
 	LT = "<"
 	GT = ">"
 
