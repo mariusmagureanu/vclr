@@ -35,13 +35,13 @@ func parseVcl(vclFile string) error {
 
 	l := lexer.New(vclFileContent)
 	p := parser.New(l)
-	program := p.ParseProgram()
+	p.ParseProgram()
 
 	if len(p.Errors()) > 0 {
 		return errors.New(strings.Join(p.Errors(), "\n"))
 	}
 
-	fmt.Println(program.String())
+	//fmt.Println(program.String())
 
 	return nil
 }

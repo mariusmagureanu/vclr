@@ -152,10 +152,17 @@ type CommentBlockStatement struct {
 }
 
 type IfExpression struct {
-	Token       token.Token // the 'if' token
+	Token        token.Token // the 'if' token
+	Condition    Expression
+	Consequence  *BlockStatement // if condition is true
+	Alternative  *BlockStatement // else
+	Alternatives []Expression    // a bunch of elsif
+}
+
+type ElseIfExpression struct {
+	Token       token.Token // the 'elseif' token
 	Condition   Expression
 	Consequence *BlockStatement
-	Alternative *BlockStatement
 }
 
 type CallExpression struct {
@@ -218,6 +225,10 @@ func (ie *InfixExpression) String() string {
 	out.WriteString(ie.Right.String())
 	return out.String()
 }
+
+func (b *Boolean) expressionNode()      {}
+func (b *Boolean) TokenLiteral() string { return b.Token.Literal }
+func (b *Boolean) String() string       { return b.Token.Literal }
 
 func (i *Identifier) expressionNode()      {}
 func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
@@ -374,11 +385,27 @@ func (ie *IfExpression) String() string {
 	out.WriteString(")  ")
 	out.WriteString(ie.Consequence.String())
 
+	for _, e := range ie.Alternatives {
+		out.WriteString(e.String())
+	}
+
 	if ie.Alternative != nil {
 		out.WriteString("\telse ")
 		out.WriteString(ie.Alternative.String())
 	}
 
+	return out.String()
+}
+
+func (ie *ElseIfExpression) expressionNode()      {}
+func (ie *ElseIfExpression) TokenLiteral() string { return ie.Token.Literal }
+func (ie *ElseIfExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(string(ie.Token.Type) + " (")
+	out.WriteString(ie.Condition.String())
+	out.WriteString(")  ")
+	out.WriteString(ie.Consequence.String())
 	return out.String()
 }
 

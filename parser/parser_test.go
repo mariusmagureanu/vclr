@@ -9,7 +9,29 @@ import (
 )
 
 func TestAll(t *testing.T) {
-	input := `
+	input := `  
+	## Automatically generated. DO **NOT** EDIT!
+    ##
+	##    - Date: 2018-11-28T13:00:33.242829
+    ##
+    ##    - Author: Carlos Abalde <cabalde@allenta.com>
+    ##
+    ##    - Message: Upgrade to APW 1.38
+    ##    (d6b0afd192c98e191cfc4f24d5e20c326dc23205)
+    ##
+     
+    ##
+    ## (c) 2015-2018 by Allenta Consulting S.L. <info@allenta.com>
+    ##
+    ## Please, check out the following links for a better understanding of all the
+    ## logic included here:
+    ##
+    ##   - https://docs.varnish-software.com
+    ##   - https://www.varnish-cache.org/docs/
+    ##   - https://github.com/varnish/Varnish-Book/
+    ##   - https://raw.githubusercontent.com/varnishcache/varnish-cache/4.1/bin/varnishd/builtin.vcl
+
+	
 		vcl 4.1;
 		
 		import std;
@@ -93,6 +115,9 @@ func TestAll(t *testing.T) {
 			if (client.ip ~ localnetwork) {
     			unset req.http.cookie;
 				set req.url = "/api/v1/foo?param=%#baz";
+				
+			} elif (client.ip ~ awaynetwork) {
+				set req.url = "/foo/bar/baz";	
 			} else {
 				set req.http.cookie = "Cache-Control: blaa";
 				}
@@ -132,8 +157,8 @@ func TestAll(t *testing.T) {
 		t.Fatalf("ParseProgram() returned nil")
 	}
 
-	if len(program.Statements) != 14 {
-		t.Fatalf("program.Statements does not contain %d statements. got %d", 14, len(program.Statements))
+	if len(program.Statements) != 33 {
+		t.Fatalf("program.Statements does not contain %d statements. got %d", 33, len(program.Statements))
 	}
 
 	fmt.Println(program.String())

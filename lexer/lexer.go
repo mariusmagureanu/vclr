@@ -15,13 +15,19 @@ type Lexer struct {
 	position     int
 	readPosition int
 	ch           byte
+	line         int
 }
 
 func New(input string) *Lexer {
 	l := &Lexer{input: input}
+	l.line = 1
 	l.readChar()
 
 	return l
+}
+
+func (l *Lexer) CurrentLine() int {
+	return l.line
 }
 
 func (l *Lexer) NextToken() token.Token {
@@ -189,6 +195,10 @@ func (l *Lexer) readChar() {
 		l.ch = l.input[l.readPosition]
 	}
 
+	if l.ch == '\n' {
+		l.line += 1
+	}
+
 	l.position = l.readPosition
 
 	l.readPosition += 1
@@ -196,7 +206,7 @@ func (l *Lexer) readChar() {
 
 func (l *Lexer) readIdentifier() string {
 	position := l.position
-	for isLetter(l.ch) {
+	for isLetter(l.ch) || isDigit(l.ch) {
 		l.readChar()
 	}
 

@@ -23,12 +23,13 @@ const (
 )
 
 var (
-	variables = map[string][]string{
+	variables = map[string][]string{}
+	/*
 		"req.method": []string{"vcl_recv", "vcl_pass"},
 		"req.url":    []string{"vcl_recv", "vcl_pass"},
 		"req.hash":   []string{"vcl_pass"},
 		"req.http.*": []string{"vcl_recv", "vcl_pass", "vcl_backend_fetch"},
-	}
+	}*/
 
 	precedences = map[token.TokenType]int{
 		token.ASSIGN:      EQUALS,
@@ -89,6 +90,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.START_COMMENT, p.parseCommentBlockStatement)
+	p.registerPrefix(token.TRUE, p.parseBoolean)
+	p.registerPrefix(token.FALSE, p.parseBoolean)
 
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.ASSIGN, p.parseInfixExpression)
@@ -135,6 +138,10 @@ func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
 
 func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
 	p.infixParseFns[tokenType] = fn
+}
+
+func (p *Parser) parseBoolean() ast.Expression {
+	return &ast.Boolean{Token: p.currentToken, Value: p.currentTokenIs(token.TRUE)}
 }
 
 func (p *Parser) parsePrefixExpression() ast.Expression {
@@ -299,7 +306,7 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 }
 
 func (p *Parser) prefixParserFnError(t token.Token) {
-	errMsg := fmt.Sprintf("no parsing function found for %s %s.", t.Type, t.Literal)
+	errMsg := fmt.Sprintf("Line %d: No parsing function found for token %s with literal %s.", p.l.CurrentLine(), t.Type, t.Literal)
 	p.errors = append(p.errors, errMsg)
 }
 
@@ -329,7 +336,7 @@ func (p *Parser) currentPrecedence() int {
 }
 
 func (p *Parser) peekError(t token.TokenType) {
-	errMsg := fmt.Sprintf("Expected next token to be %s but got %s %s instead.", t, p.peekToken.Type, p.peekToken.Literal)
+	errMsg := fmt.Sprintf("Line %d: Expected next token to be %s but got %s %s instead.", p.l.CurrentLine(), t, p.peekToken.Type, p.peekToken.Literal)
 	p.errors = append(p.errors, errMsg)
 }
 
@@ -370,8 +377,34 @@ func (p *Parser) parseRealLiteral() ast.Expression {
 	return rl
 }
 
+func (p *Parser) parseElseIfExpression() ast.Expression {
+	ei := &ast.ElseIfExpression{Token: p.currentToken}
+
+	p.nextToken()
+	if !p.currentTokenIs(token.LPAREN) {
+		return nil
+	}
+
+	p.nextToken()
+
+	ei.Condition = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	ei.Consequence = p.parseBlockStatement()
+
+	return ei
+}
+
 func (p *Parser) parseIfExpression() ast.Expression {
 	expression := &ast.IfExpression{Token: p.currentToken}
+	expression.Alternatives = make([]ast.Expression, 0)
 
 	if !p.expectPeek(token.LPAREN) {
 		return nil
@@ -390,6 +423,13 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	}
 
 	expression.Consequence = p.parseBlockStatement()
+
+	for p.peekTokenIs(token.ELSEIF) {
+		p.nextToken()
+		bs := p.parseElseIfExpression()
+
+		expression.Alternatives = append(expression.Alternatives, bs)
+	}
 
 	if p.peekTokenIs(token.ELSE) {
 		p.nextToken()
@@ -418,7 +458,8 @@ func (p *Parser) parseSetStatement() *ast.SetStatement {
 	stmt := &ast.SetStatement{Token: p.currentToken}
 
 	if !p.expectPeek(token.IDENT) {
-		p.errors = append(p.errors, "Missing identifier in set statement.")
+		errMsg := fmt.Sprintf("Line %d:Missing identifier in set statement.", p.l.CurrentLine())
+		p.errors = append(p.errors, errMsg)
 		return nil
 	}
 
@@ -429,7 +470,8 @@ func (p *Parser) parseSetStatement() *ast.SetStatement {
 	stmt.Name = &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
 
 	if !p.expectPeek(token.ASSIGN) {
-		p.errors = append(p.errors, "Missing assignment in set statement.")
+		errMsg := fmt.Sprintf("Line %d:Missing assignment in set statement", p.l.CurrentLine())
+		p.errors = append(p.errors, errMsg)
 		return nil
 	}
 
