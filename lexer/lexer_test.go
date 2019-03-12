@@ -7,7 +7,7 @@ import (
 )
 
 func TestNextTokenLite(t *testing.T) {
-	input := `=4.1y,7,6,5.06,(0){},;`
+	input := `=4.1y,7,6,5.06,(0){},;==!=~!!~|||&&&>><`
 
 	tests := []struct {
 		expectedType    token.TokenType
@@ -29,6 +29,18 @@ func TestNextTokenLite(t *testing.T) {
 		{token.RBRACE, "}"},
 		{token.COMMA, ","},
 		{token.SEMICOLON, ";"},
+		{token.EQ, "=="},
+		{token.NOT_EQ, "!="},
+		{token.MATCH, "~"},
+		{token.BANG, "!"},
+		{token.NOT_MATCH, "!~"},
+		{token.LOGICAL_OR, "||"},
+		{token.PIPE, "|"},
+		{token.LOGICAL_AND, "&&"},
+		{token.AMPERSAND, "&"},
+		{token.GT, ">"},
+		{token.GT, ">"},
+		{token.LT, "<"},
 		{token.EOF, ""},
 	}
 
