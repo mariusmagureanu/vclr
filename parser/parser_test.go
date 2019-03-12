@@ -47,7 +47,7 @@ func TestAll(t *testing.T) {
 			call synth;
 			call pipe_if_local; # blaaa
 			// set something = xx;
-			
+			/**/
 			/*
 			set req.http.Cookie = regsuball(req.http.Cookie, "__utm.=[^;]+(; )?", "");
   			set req.http.Cookie = regsuball(req.http.Cookie, "_ga=[^;]+(; )?", "");

@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	// operator precedence order
 	_ int = iota
 	LOWEST
 	EQUALS      // ==
