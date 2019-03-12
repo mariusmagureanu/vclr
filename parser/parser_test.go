@@ -44,14 +44,30 @@ func TestAll(t *testing.T) {
 		}
 		
 		sub vcl_recv {
+			
+			if (req.method == "PURGE") {
+    			if (client.ip ~ local) {
+    			   return(purge);
+    			} else {
+    			    return (synth(403,("blaa")));
+   				 }
+  			}
+	
 			set req.http.X-foo = "bar";
 			set req.url = "/api/url/baz";
 		}
 		
 		sub vcl_pass {
 			set req.http.X-Baz = "qux";
-			unset req.http.cookie;
+			
 			set req.http.X-Forwarded-For = req.http.X-Forwarded-For + ", " + client.ip;
+			
+			if (client.ip ~ localnetwork) {
+    			unset req.http.cookie;
+				set req.url = "/api/v1/foo?param=%#baz";
+			} else {
+				set req.http.cookie = "Cache-Control: blaa";
+				}
 		}
 	
 	`
@@ -70,7 +86,7 @@ func TestAll(t *testing.T) {
 		t.Fatalf("program.Statements does not contain %d statements. got %d", 11, len(program.Statements))
 	}
 
-	//fmt.Println(program.String())
+	fmt.Println(program.String())
 }
 
 func TestFunctionLiteral(t *testing.T) {
@@ -126,7 +142,6 @@ func TestFunctionLiteral(t *testing.T) {
 		t.Fatal("Set statement value has the incorrect value.")
 	}
 
-	fmt.Println(fnExp.String())
 }
 
 func TestProbeExpression(t *testing.T) {
@@ -338,7 +353,7 @@ func TestVclStatement(t *testing.T) {
 
 func TestSetStatements(t *testing.T) {
 	input := `
-set x = 5;
+set x = 5+3;
 set y = 10;
 set foobar = 838383;
 `
@@ -361,7 +376,7 @@ set foobar = 838383;
 		expectedIdentifier string
 		expectedValue      string
 	}{
-		{"x", "5"},
+		{"x", "5+3"},
 		{"y", "10"},
 		{"foobar", "838383"},
 	}
