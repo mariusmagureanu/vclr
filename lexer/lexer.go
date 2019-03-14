@@ -33,6 +33,7 @@ func (l *Lexer) CurrentLine() int {
 func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
 
+read:
 	l.skipWhitespace()
 
 	switch l.ch {
@@ -63,23 +64,17 @@ func (l *Lexer) NextToken() token.Token {
 		} else {
 			tok = newToken(token.PIPE, l.ch)
 		}
-	// when reading comments we advance here, no reason
-	// to offload this to the parser. Instead, the parser
-	// will receive a comment token with the commented text
-	// as its literal value.
 	case '#':
-		tok.Type = token.COMMENT_ONE
-		tok.Literal = l.readStringToEOL()
+		l.readStringToEOL()
+		goto read
 	case '/':
 		if l.peekChar() == '/' {
-			l.readChar()
-			tok.Type = token.COMMENT_TWO
-			tok.Literal = l.readStringToEOL()
+			l.readStringToEOL()
+			goto read
 		} else if l.peekChar() == '*' {
 			l.readChar()
-			tok.Type = token.START_COMMENT
-			tok.Literal = l.readStringToEndOfCommentBlock()
-
+			l.readStringToEndOfCommentBlock()
+			goto read
 		} else {
 			tok = newToken(token.SLASH, l.ch)
 		}
@@ -96,14 +91,7 @@ func (l *Lexer) NextToken() token.Token {
 	case '(':
 		tok = newToken(token.LPAREN, l.ch)
 	case '*':
-		if l.peekChar() == '/' {
-			ch := l.ch
-			l.readChar()
-			literal := string(ch) + string(l.ch)
-			tok = token.Token{Type: token.END_COMMENT, Literal: literal}
-		} else {
-			tok = newToken(token.ASTERISK, l.ch)
-		}
+		tok = newToken(token.ASTERISK, l.ch)
 	case '"':
 		tok.Type = token.STRING
 		tok.Literal = l.readString()
@@ -231,9 +219,11 @@ func (l *Lexer) readStringToEOL() string {
 
 	for {
 		l.readChar()
-		if l.ch == '\n' || l.ch == 0 {
+
+		if l.ch == '\n' || l.ch == '\r' || l.ch == 0 {
 			break
 		}
+
 	}
 
 	return l.input[position:l.position]
@@ -253,18 +243,13 @@ func (l *Lexer) readStringToEndOfCommentBlock() string {
 			break
 		}
 
-		// check there's still room to read
-		if l.readPosition+3 > len(l.input) {
-			break
+		if l.ch == '*' {
+			l.readChar()
+			if l.ch == '/' {
+				l.readChar()
+				break
+			}
 		}
-
-		x := l.input[l.readPosition+1]
-		y := l.input[l.readPosition+2]
-
-		if x == '*' && y == '/' {
-			break
-		}
-
 	}
 
 	return l.input[position:l.position]

@@ -80,8 +80,6 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.REAL, p.parseRealLiteral)
 	p.registerPrefix(token.DURATION, p.parseDurationLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
-	p.registerPrefix(token.COMMENT_ONE, p.parseCommentStatement)
-	p.registerPrefix(token.COMMENT_TWO, p.parseCommentStatement)
 	p.registerPrefix(token.ACL, p.parseAclExpression)
 	p.registerPrefix(token.BACKEND, p.parseBackendExpression)
 	p.registerPrefix(token.PROBE, p.parseProbeExpression)
@@ -89,7 +87,6 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
-	p.registerPrefix(token.START_COMMENT, p.parseCommentBlockStatement)
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 
@@ -585,7 +582,7 @@ func (p *Parser) isValidVariable(vclVar string) bool {
 			}
 		}
 
-		p.errors = append(p.errors, fmt.Sprintf("%s is not allowed in %s", vclVar, p.currentSub))
+		p.errors = append(p.errors, fmt.Sprintf("Line %d: %s is not allowed in %s", p.l.CurrentLine(), vclVar, p.currentSub))
 		return false
 	}
 
