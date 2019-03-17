@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"fmt"
+	_ "fmt"
 	"testing"
 
 	"github.com/varnish/vclr/ast"
@@ -41,7 +41,7 @@ func TestAll(t *testing.T) {
 		
 		acl localnetwork {
     		"localhost";   
-    		"192.0.2.0"/24; 
+    		"192.0.2.0"/24; //TODO: 192.0.0.1/abc is valid!!!!
 		     !"192.0.2.23"; 		
 		}
 
@@ -49,19 +49,26 @@ func TestAll(t *testing.T) {
 			.url = "/api/v1/foo";
 			.expected_response = 200;
 			.interval = 5s;
-			.window = 8;
+			.window = 8;	
 			}
 			
 		backend first {
 		.host = "localhost";
 		.port = 7085;
-		.connect_timeout=50m;
+		.connect_timeout = 50m;
+		.probe = {
+			.url = "/";
+         	.interval = 5s;
+         	.timeout = 1 s;
+         	.window = 5;
+         	.threshold = 3;
+    		} 
 		}
 	
 		backend second {
 		.host = "localhost";
 		.port = 9001;
-		.connect_timeout=10s;
+		.connect_timeout = 10s;
 		}
 		
 		sub vcl_recv {
@@ -120,7 +127,9 @@ func TestAll(t *testing.T) {
 			} 	# baz bar	
 			elif (client.ip ~ awaynetwork) {
 				set req.url = "/foo/bar/baz";	
-			} else {
+			} elif (client.ip ~ anothernetwork) {
+				set req.url = "/api/bar/baz";	
+			}else {
 				set req.http.cookie = "Cache-Control: blaa";
 				}
 		}
@@ -151,19 +160,13 @@ func TestAll(t *testing.T) {
 
 	l := lexer.New(input)
 	p := New(l)
-	program := p.ParseProgram()
+	_, err := p.ParseProgram()
 
-	checkParseErrors(t, p)
-
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	if len(program.Statements) != 33 {
-		//t.Fatalf("program.Statements does not contain %d statements. got %d", 33, len(program.Statements))
-	}
-
-	fmt.Println(program.String())
+	//	fmt.Println(program.String())
 }
 
 func TestFunctionLiteral(t *testing.T) {
@@ -177,12 +180,10 @@ func TestFunctionLiteral(t *testing.T) {
 
 	l := lexer.New(input)
 	p := New(l)
-	program := p.ParseProgram()
+	program, err := p.ParseProgram()
 
-	checkParseErrors(t, p)
-
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if len(program.Statements) != 1 {
@@ -233,12 +234,10 @@ func TestProbeExpression(t *testing.T) {
 
 	l := lexer.New(input)
 	p := New(l)
-	program := p.ParseProgram()
+	program, err := p.ParseProgram()
 
-	checkParseErrors(t, p)
-
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if len(program.Statements) != 1 {
@@ -266,20 +265,18 @@ func TestProbeExpression(t *testing.T) {
 func TestBackendExpression(t *testing.T) {
 	input := `
 	backend default {
-		.host = "localhost";
+		.host= "localhost";
 		.port = 9001;
-		.connect_timeout=10s;
+		.connect_timeout = 10s;
 		}
 `
 
 	l := lexer.New(input)
 	p := New(l)
-	program := p.ParseProgram()
+	program, err := p.ParseProgram()
 
-	checkParseErrors(t, p)
-
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if len(program.Statements) != 1 {
@@ -314,12 +311,10 @@ func TestAclStatement(t *testing.T) {
 	`
 	l := lexer.New(input)
 	p := New(l)
-	program := p.ParseProgram()
+	program, err := p.ParseProgram()
 
-	checkParseErrors(t, p)
-
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if len(program.Statements) != 1 {
@@ -349,12 +344,10 @@ func TestImportStatement(t *testing.T) {
 
 	l := lexer.New(input)
 	p := New(l)
-	program := p.ParseProgram()
+	program, err := p.ParseProgram()
 
-	checkParseErrors(t, p)
-
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if len(program.Statements) != 1 {
@@ -381,12 +374,10 @@ func TestIncludeStatement(t *testing.T) {
 
 	l := lexer.New(input)
 	p := New(l)
-	program := p.ParseProgram()
+	program, err := p.ParseProgram()
 
-	checkParseErrors(t, p)
-
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if len(program.Statements) != 1 {
@@ -414,12 +405,10 @@ func TestVclStatement(t *testing.T) {
 
 	l := lexer.New(input)
 	p := New(l)
-	program := p.ParseProgram()
+	program, err := p.ParseProgram()
 
-	checkParseErrors(t, p)
-
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if len(program.Statements) != 2 {
@@ -437,12 +426,10 @@ set foobar = 838383;
 
 	l := lexer.New(input)
 	p := New(l)
-	program := p.ParseProgram()
+	program, err := p.ParseProgram()
 
-	checkParseErrors(t, p)
-
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if len(program.Statements) != 3 {

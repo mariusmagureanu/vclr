@@ -1,13 +1,11 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/varnish/vclr/lexer"
 	"github.com/varnish/vclr/parser"
@@ -35,15 +33,10 @@ func parseVcl(vclFile string) error {
 
 	l := lexer.New(vclFileContent)
 	p := parser.New(l)
-	p.ParseProgram()
 
-	if len(p.Errors()) > 0 {
-		return errors.New(strings.Join(p.Errors(), "\n"))
-	}
+	_, err = p.ParseProgram()
 
-	//fmt.Println(program.String())
-
-	return nil
+	return err
 }
 
 func main() {

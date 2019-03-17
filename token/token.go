@@ -5,11 +5,12 @@ const (
 	EOF     = "EOF"
 
 	//Identifiers and literals
-	IDENT    = "IDENT"    // add, foo, bar, x, y...
-	INT      = "INT"      // 1232
-	REAL     = "REAL"     // 3.14
-	DURATION = "DURATION" // 4.50s
-	STRING   = "STRING"
+	IDENT     = "IDENT"    // add, foo, bar, x, y...
+	INT       = "INT"      // 1232
+	REAL      = "REAL"     // 3.14
+	DURATION  = "DURATION" // 4.50s
+	STRING    = "STRING"
+	ATTRIBUTE = "ATTRIBUTE" // .host .port ...etc, identifiers preceeded by . (dot)
 
 	//Operators
 	PLUS     = "+"
@@ -27,6 +28,7 @@ const (
 	LOGICAL_AND = "&&"
 	PIPE        = "|"
 	AMPERSAND   = "&"
+	DOT         = "."
 
 	COMMENT_ONE   = "#"
 	COMMENT_TWO   = "//"

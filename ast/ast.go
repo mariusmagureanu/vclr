@@ -51,6 +51,12 @@ type SetStatement struct {
 	Value Expression
 }
 
+type Attribute struct {
+	Token token.Token
+	Name  *Identifier
+	Value Expression
+}
+
 type VclStatement struct {
 	Token token.Token
 	Name  *Identifier
@@ -200,6 +206,22 @@ func (ls *SetStatement) String() string {
 
 	if ls.Value != nil {
 		out.WriteString(ls.Value.String())
+	}
+
+	return out.String()
+}
+
+func (as *Attribute) expressionNode()      {}
+func (as *Attribute) TokenLiteral() string { return as.Token.Literal }
+func (as *Attribute) String() string {
+	var out bytes.Buffer
+
+	//out.WriteString(as.TokenLiteral() + " ")
+	out.WriteString(as.Name.String())
+	out.WriteString(" = ")
+
+	if as.Value != nil {
+		out.WriteString(as.Value.String())
 	}
 
 	return out.String()

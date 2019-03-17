@@ -121,6 +121,12 @@ read:
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
+	case '.':
+		if isLetter(l.peekChar()) {
+			literal := l.readIdentifier()
+			tok = token.Token{Type: token.ATTRIBUTE, Literal: literal}
+			return tok
+		}
 	default:
 		if isLetter(l.ch) {
 			tok.Literal = l.readIdentifier()
