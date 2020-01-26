@@ -75,6 +75,11 @@ func main() {
 		os.Exit(0)
 	}
 
+	if *vclFile == "" && *vclFolder == "" {
+		fmt.Println("The parser needs either -f or -p to run. See help (-h)")
+		os.Exit(1)
+	}
+
 	if *vclFile != "" {
 		err := parseVcl(*vclFile)
 
