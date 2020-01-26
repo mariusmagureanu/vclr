@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/varnish/vclr/ast"
 	"github.com/varnish/vclr/lexer"
@@ -144,6 +143,8 @@ var (
 		token.LOGICAL_OR:  EQUALS,
 		token.LT:          LESSGREATER,
 		token.GT:          LESSGREATER,
+		token.LET:         LESSGREATER,
+		token.GET:         LESSGREATER,
 		token.PLUS:        SUM,
 		token.MINUS:       SUM,
 		token.SLASH:       PRODUCT,
@@ -200,6 +201,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.NOT_MATCH, p.parseInfixExpression)
 	p.registerInfix(token.GT, p.parseInfixExpression)
 	p.registerInfix(token.LT, p.parseInfixExpression)
+	p.registerInfix(token.GET, p.parseInfixExpression)
+	p.registerInfix(token.LET, p.parseInfixExpression)
 	p.registerInfix(token.SLASH, p.parseInfixExpression)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.EQ, p.parseInfixExpression)
@@ -966,9 +969,9 @@ func (p *Parser) parseFunctionLiteral() (ast.Expression, error) {
 
 	fn.Name = &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
 
-	if strings.HasPrefix(fn.Name.Value, "vcl_") {
-		p.currentSub = fn.Name.Value
-	}
+	//if strings.HasPrefix(fn.Name.Value, "vcl_") {
+	p.currentSub = fn.Name.Value
+	//}
 
 	p.nextToken()
 

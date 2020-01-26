@@ -38,6 +38,9 @@ const (
 	LT = "<"
 	GT = ">"
 
+	LET = "<="
+	GET = ">="
+
 	//Delimiters
 	COMMA     = ","
 	SEMICOLON = ";"
