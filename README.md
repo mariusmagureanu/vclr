@@ -28,4 +28,5 @@ Start the parser with any of the following command line args:
 |*f*            | Parse the specified file                          | N/A           |
 |*p*            | Parse recursivelly the specified folder and look for .vcl files   | N/A |
 |*V*            | Display current version and exit.                 |               |                |
+|*h*            | Display this help and exit.                       |               |                |
 
