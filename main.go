@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/varnish/vclr/lexer"
 	"github.com/varnish/vclr/parser"
@@ -39,6 +41,22 @@ func parseVcl(vclFile string) error {
 	return err
 }
 
+func parseFolder(vclFolder string) error {
+	err := filepath.Walk(vclFolder,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if strings.ToLower(filepath.Ext(path)) != ".vcl" {
+				return nil
+			}
+
+			return parseVcl(path)
+		})
+	return err
+}
+
 func main() {
 
 	commandLine.Usage = func() {
@@ -57,9 +75,19 @@ func main() {
 		os.Exit(0)
 	}
 
-	err := parseVcl(*vclFile)
+	if *vclFile != "" {
+		err := parseVcl(*vclFile)
 
-	if err != nil {
-		fmt.Println(err)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	if *vclFolder != "" {
+		err := parseFolder(*vclFolder)
+
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }
