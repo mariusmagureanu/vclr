@@ -1,3 +1,5 @@
+REVISION := $(shell git rev-parse HEAD)
+VERSION := $(shell git rev-parse --abbrev-ref HEAD)
 PACKAGES = \
 	github.com/varnish/vclr/lexer \
 	github.com/varnish/vclr/ast  \
