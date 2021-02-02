@@ -158,6 +158,8 @@ type (
 	infixParseFn  func(ast.Expression) (ast.Expression, error)
 )
 
+//Parser is a type that will actually handle the parsing
+// of a VCL given a lexer.
 type Parser struct {
 	l *lexer.Lexer
 
@@ -171,6 +173,7 @@ type Parser struct {
 	currentSub string
 }
 
+// New returns a pointer to a new Parser instance.
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{l: l,
 		errors: []string{},
@@ -184,7 +187,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.REAL, p.parseRealLiteral)
 	p.registerPrefix(token.DURATION, p.parseDurationLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
-	p.registerPrefix(token.ACL, p.parseAclExpression)
+	p.registerPrefix(token.ACL, p.parseACLExpression)
 	p.registerPrefix(token.BACKEND, p.parseBackendExpression)
 	p.registerPrefix(token.PROBE, p.parseProbeExpression)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
@@ -215,6 +218,7 @@ func New(l *lexer.Lexer) *Parser {
 	return p
 }
 
+// ParseProgram parses the entire read VCL
 func (p *Parser) ParseProgram() (*ast.Program, error) {
 	var err error
 	program := &ast.Program{}
@@ -238,6 +242,8 @@ func (p *Parser) ParseProgram() (*ast.Program, error) {
 	return program, err
 }
 
+// Errors returns a slice of string whose
+// values represent encountered error messages.
 func (p *Parser) Errors() []string {
 	return p.errors
 }
@@ -363,10 +369,9 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 	if p.peekTokenIs(t) {
 		p.nextToken()
 		return true
-	} else {
-		p.peekError(t)
-		return false
 	}
+	p.peekError(t)
+	return false
 }
 
 func (p *Parser) parseReturnStatement() (*ast.ReturnStatement, error) {
@@ -422,7 +427,7 @@ func (p *Parser) parseCallArguments() ([]ast.Expression, error) {
 	}
 
 	if !p.expectPeek(token.RPAREN) {
-		return args, errors.New("Unclosed right paranthesis when parsing function arguments.")
+		return args, errors.New("unclosed right paranthesis when parsing function arguments")
 
 	}
 
@@ -822,7 +827,7 @@ func (p *Parser) isValidVariable(vclVar string) error {
 			}
 		}
 
-		return errors.New(fmt.Sprintf("%s is not allowed in %s", vclVar, p.currentSub))
+		return fmt.Errorf("%s is not allowed in %s", vclVar, p.currentSub)
 	}
 
 	return nil
@@ -856,7 +861,7 @@ func (p *Parser) parseBlockStatement() (*ast.BlockStatement, error) {
 	}
 
 	if p.currentToken.Type != token.RBRACE {
-		return block, errors.New("Unclosed curly brace.")
+		return block, errors.New("unclosed curly brace")
 	}
 
 	return block, nil
@@ -871,7 +876,7 @@ func (p *Parser) parseRestrictedBlockStatement(tks []token.TokenType, parent tok
 	for !p.currentTokenIs(token.RBRACE) && !p.currentTokenIs(token.EOF) {
 
 		if !p.currentTokenIn(tks) {
-			return block, errors.New(fmt.Sprintf("%s token not allowed in %s", p.currentToken.Type, parent))
+			return block, fmt.Errorf("%s token not allowed in %s", p.currentToken.Type, parent)
 		}
 
 		stmt, err := p.parseStatement()
@@ -888,13 +893,13 @@ func (p *Parser) parseRestrictedBlockStatement(tks []token.TokenType, parent tok
 	}
 
 	if p.currentToken.Type != token.RBRACE {
-		return block, errors.New("Unclosed curly brace.")
+		return block, errors.New("unclosed curly brace")
 	}
 
 	return block, nil
 }
 
-func (p *Parser) parseAclExpression() (ast.Expression, error) {
+func (p *Parser) parseACLExpression() (ast.Expression, error) {
 	acl := &ast.AclExpression{Token: p.currentToken}
 
 	p.nextToken()
